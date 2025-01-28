@@ -1,9 +1,11 @@
-// src/components/TaskCard.js
 import React from "react";
+import { useDispatch } from "react-redux";
+import { deleteTask } from "../store/kanbanSlice";
 import { Box, Typography, IconButton, Menu, MenuItem } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
-const TaskCard = ({ task }) => {
+const TaskCard = ({ task, sectionId }) => {
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleMenuOpen = (event) => {
@@ -15,7 +17,7 @@ const TaskCard = ({ task }) => {
   };
 
   const handleDelete = () => {
-    alert(`Task "${task.name}" deleted.`);
+    dispatch(deleteTask({ sectionId, taskId: task.id }));
     handleMenuClose();
   };
 
