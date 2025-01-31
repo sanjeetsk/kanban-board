@@ -87,9 +87,6 @@ const Section = ({ section }) => {
             + Add Task
           </Button>
         ) : (
-          // section.tasks.map((task) => (
-          //   <TaskCard key={task.id} task={task} sectionId={section.id} />
-          // ))
           section.tasks.map((task, index) => (
             <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={index}>
               {(provided) => (
