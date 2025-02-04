@@ -87,7 +87,7 @@ const Board = () => {
 
   return (
     <Box p={3} bgcolor="#f5f5f5" minHeight="100vh">
-      <AppBar position="static">
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "white", color: "black", boxShadow: "none", mb: 2 }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Kanban Board
@@ -109,25 +109,48 @@ const Board = () => {
         </Toolbar>
       </AppBar>
 
-      <Button variant="contained" color="primary" onClick={() => setIsSectionFormOpen(true)}>
+      {/* <Button variant="contained" color="primary" onClick={() => setIsSectionFormOpen(true)} sx={{ mt: 2 }}>
         + Add Section
-      </Button>
+      </Button> */}
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <Grid container spacing={2} mt={2}>
+        <Box
+          //  ref={provided.innerRef}
+          //  {...provided.droppableProps}
+           sx={{
+              display: "flex",
+              height: "calc(100vh - 64px - 60px)", // Full height
+              overflowX: "auto", // Enable horizontal scrolling if columns exceed screen width
+              overflowY: "hidden",
+              backgroundColor: "white",
+              borderRadius: 2,
+              padding: 2,
+              boxShadow: 1,
+              gap: 2, // Space between sections
+              pb: 2
+           }}
+        >
           {sections.map((section) => (
-            <Grid item xs={12} sm={4} key={section.id}>
-              <Droppable droppableId={section.id.toString()}>
-                {(provided) => (
-                  <Box ref={provided.innerRef} {...provided.droppableProps} bgcolor="white" borderRadius={2} boxShadow={1} p={2}>
+            <Droppable key={section._id} droppableId={section._id}>
+            {(provided) => (
+                  <Box ref={provided.innerRef} {...provided.droppableProps}
+                  sx={{
+                    minWidth: 300, // Each section is exactly 250px wide
+                    maxWidth: 300,
+                    bgcolor: "#f4f4f4", // Light gray background
+                    borderRadius: 3,
+                    boxShadow: "0px 2px 10px rgba(0, 0, 0, 0.1)",
+                    p: 2,
+                    flexShrink: 0,
+                  }}
+                  >
                     <Section section={section} />
                     {provided.placeholder}
                   </Box>
                 )}
               </Droppable>
-            </Grid>
           ))}
-        </Grid>
+        </Box>
       </DragDropContext>
 
       {/* Add Section Popup */}

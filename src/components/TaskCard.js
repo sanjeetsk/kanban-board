@@ -17,7 +17,7 @@ const TaskCard = ({ task, sectionId }) => {
   };
 
   const handleDelete = () => {
-    dispatch(deleteTask({ sectionId, taskId: task.id }));
+    dispatch(deleteTask({ sectionId, taskId: task._id }));
     handleMenuClose();
   };
 

@@ -26,13 +26,13 @@ const Section = ({ section }) => {
   const [isUpdateSection, setIsUpdateSection] = useState(false);
 
   const handleAddTask = (taskData) => {
-    const newTask = { ...taskData, id: Date.now() };
-    dispatch(addTask({ sectionId: section.id, task: newTask }));
+    const newTask = { ...taskData, section: section._id };
+    dispatch(addTask(newTask));
   };
 
   const handleDeleteSection = () => {
     if (window.confirm(`Are you sure you want to delete the section "${section.name}"?`)) {
-      dispatch(deleteSection({ sectionId: section.id }));
+      dispatch(deleteSection(section._id));
     }
     setMenuAnchorEl(null);
   };
@@ -40,7 +40,7 @@ const Section = ({ section }) => {
   const handleUpdateSection = () => {
     const newTitle = prompt("Enter new title for the section:", section.name);
     if (newTitle && newTitle.trim() !== "") {
-      dispatch(updateSection({ sectionId: section.id, name: newTitle }));
+      dispatch(updateSection({ sectionId: section._id, name: newTitle }));
     }
     setMenuAnchorEl(null);
   };
@@ -88,14 +88,14 @@ const Section = ({ section }) => {
           </Button>
         ) : (
           section.tasks.map((task, index) => (
-            <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={index}>
+            <Draggable key={task._id} draggableId={task._id} index={index}>
               {(provided) => (
                 <Box
                   ref={provided.innerRef}
                   {...provided.draggableProps}
                   {...provided.dragHandleProps}
                 >
-                  <TaskCard task={task} sectionId={section.id} />
+                  <TaskCard task={task} sectionId={section._id} />
                 </Box>
               )}
             </Draggable>

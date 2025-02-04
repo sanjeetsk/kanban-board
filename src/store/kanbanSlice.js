@@ -13,14 +13,15 @@ const initialState = {
 };
 
 export const addSection = createAsyncThunk("kanban/addSection", async (name) => {
-    const response = await API.post("/section", { name });
+    const response = await API.post('/section', name);
     return response.data;
 });
 
 export const updateSection = createAsyncThunk(
     "kanban/updateSection",
     async ({ sectionId, name }) => {
-        await API.put(`/section/${sectionId}`, { name });
+        console.log('sectionIdss', `/section/${sectionId}`, name);
+        await API.put(`/section/${sectionId}`, name);
         return { sectionId, name };
     }
 );
@@ -31,6 +32,7 @@ export const deleteSection = createAsyncThunk("kanban/deleteSection", async (sec
 });
 
 export const addTask = createAsyncThunk("kanban/addTask", async ({ sectionId, task }) => {
+    console.log('sectionId', sectionId, task);
     const response = await API.post("/task", { ...task, section: sectionId });
     return { sectionId, task: response.data };
 });
@@ -103,7 +105,7 @@ const kanbanSlice = createSlice({
                 if (section) section.name = action.payload.name;
             })
             .addCase(deleteSection.fulfilled, (state, action) => {
-                state.sections = state.sections.filter((s) => s.id !== action.payload);
+                state.sections = state.sections.filter((s) => s._id !== action.payload);
             })
             .addCase(addTask.fulfilled, (state, action) => {
                 const section = state.sections.find((s) => s.id === action.payload.sectionId);

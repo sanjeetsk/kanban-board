@@ -8,12 +8,11 @@ import {
   Button,
 } from "@mui/material";
 
-const TaskForm = ({ open, onClose, onSubmit, defaultAssignee }) => {
+const TaskForm = ({ open, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     dueDate: "",
-    assignee: defaultAssignee || "",
   });
 
   const handleChange = (e) => {
@@ -23,7 +22,7 @@ const TaskForm = ({ open, onClose, onSubmit, defaultAssignee }) => {
 
   const handleSubmit = () => {
     onSubmit(formData);
-    setFormData({ name: "", description: "", dueDate: "", assignee: defaultAssignee || "" });
+    setFormData({ name: "", description: "", dueDate: ""});
     onClose();
   };
 
