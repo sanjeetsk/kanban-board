@@ -3,17 +3,16 @@ import { useDispatch } from "react-redux";
 import { addTask, deleteSection, updateSection } from "../store/kanbanSlice";
 import {
   Box,
-  Typography,
   IconButton,
   Menu,
   MenuItem,
   Button,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from "@mui/icons-material/Add";
 import TaskCard from "./TaskCard";
 import TaskForm from "./TaskForm";
-import { Draggable } from "react-beautiful-dnd";
+import { Draggable, Droppable } from "react-beautiful-dnd";
 
 const Section = ({ section }) => {
   const dispatch = useDispatch();
@@ -23,7 +22,6 @@ const Section = ({ section }) => {
 
   // State for section menu
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
-  const [isUpdateSection, setIsUpdateSection] = useState(false);
 
   const handleAddTask = (taskData) => {
     const newTask = { ...taskData, section: section._id };
@@ -46,10 +44,10 @@ const Section = ({ section }) => {
   };
 
   return (
-    <Box bgcolor="white" p={2} borderRadius={2} boxShadow={1}>
+    <Box height="100%" bgcolor="white" p={2}  >
       {/* Section Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">{section.name}</Typography>
+        <h6 className="section-title">{section.name}</h6>
         <Box>
           <IconButton onClick={() => setIsTaskFormOpen(true)}>
             <AddIcon />
@@ -59,7 +57,7 @@ const Section = ({ section }) => {
             aria-controls="section-menu"
             aria-haspopup="true"
           >
-            <MoreVertIcon />
+            <MoreHorizIcon />
           </IconButton>
           <Menu
             id="section-menu"
@@ -76,32 +74,57 @@ const Section = ({ section }) => {
       </Box>
 
       {/* Section Body */}
-      <Box mt={2}>
-        {section.tasks.length === 0 ? (
-          <Button
-            variant="outlined"
-            color="primary"
-            fullWidth
-            onClick={() => setIsTaskFormOpen(true)}
-          >
-            + Add Task
-          </Button>
-        ) : (
-          section.tasks.map((task, index) => (
-            <Draggable key={task._id} draggableId={task._id} index={index}>
-              {(provided) => (
-                <Box
-                  ref={provided.innerRef}
-                  {...provided.draggableProps}
-                  {...provided.dragHandleProps}
-                >
-                  <TaskCard task={task} sectionId={section._id} />
-                </Box>
-              )}
-            </Draggable>
-          ))
+      <Droppable droppableId={section._id}>
+        {(provided) => (
+          <Box ref={provided.innerRef} {...provided.droppableProps}
+            mt={1} 
+            sx={{
+              height: "95%",
+              bgcolor: "#F5F5F5",
+              padding: 1,
+              borderRadius: 2,
+          }}>
+            {/* If no tasks, show "+ Add Task" at the top */}
+            {section.tasks.length === 0 && (
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => setIsTaskFormOpen(true)}
+                sx={{ color: "#a2a5ab", mt: 1 }}
+              >
+                + Add Task
+              </Button>
+            )}  
+            {/* Render Tasks */}
+            {section.tasks.map((task, index) => (
+                <Draggable key={task._id} draggableId={task._id} index={index}>
+                  {(provided) => (
+                    <Box
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      <TaskCard task={task} sectionId={section._id} />
+                    </Box>
+                  )}
+                </Draggable>
+              ))
+            }
+            {provided.placeholder}
+            {/* If tasks exist, show "+ Add Task" at the bottom */}
+            {section.tasks.length > 0 && (
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => setIsTaskFormOpen(true)}
+                sx={{ color: "#a2a5ab", mt: 1 }}
+              >
+                + Add Task
+              </Button>
+            )}
+          </Box>
         )}
-      </Box>
+      </Droppable>
 
       {/* Task Form Popup */}
       <TaskForm

@@ -21,7 +21,7 @@ export const updateSection = createAsyncThunk(
     "kanban/updateSection",
     async ({ sectionId, name }) => {
         console.log('sectionIdss', `/section/${sectionId}`, name);
-        await API.put(`/section/${sectionId}`, name);
+        await API.put(`/section/${sectionId}`, { name });
         return { sectionId, name };
     }
 );
@@ -31,15 +31,19 @@ export const deleteSection = createAsyncThunk("kanban/deleteSection", async (sec
     return sectionId;
 });
 
-export const addTask = createAsyncThunk("kanban/addTask", async ({ sectionId, task }) => {
-    console.log('sectionId', sectionId, task);
-    const response = await API.post("/task", { ...task, section: sectionId });
-    return { sectionId, task: response.data };
+export const addTask = createAsyncThunk("kanban/addTask", async (taskData) => {
+    console.log('data', taskData);
+    // Send the taskData directly, as it already contains `section`
+    const response = await API.post("/task", taskData);
+    return {
+        sectionId: taskData.section,
+        task: response.data.task // Extracting the actual task object 
+    };
 });
 
-export const updateTask = createAsyncThunk("kanban/updateTask", async ({ taskId, updates }) => {
-    await API.put(`/task/${taskId}`, updates);
-    return { taskId, updates };
+export const updateTask = createAsyncThunk("kanban/updateTask", async ({ taskId, sectionId, updatedTaskData }) => {
+    const response = await API.put(`/task/${taskId}`, updatedTaskData);
+    return { sectionId, taskId, updatedTask: response.data.task };
 });
 
 export const deleteTask = createAsyncThunk("kanban/deleteTask", async ({ sectionId, taskId }) => {
@@ -72,15 +76,15 @@ const kanbanSlice = createSlice({
         },
         updateSectionLocal: (state, action) => {
             const { sectionId, name } = action.payload;
-            const section = state.sections.find((s) => s.id === sectionId);
+            const section = state.sections.find((s) => s._id === sectionId);
             if (section) section.name = name;
         },
         deleteSectionLocal: (state, action) => {
-            state.sections = state.sections.filter((s) => s.id !== action.payload);
+            state.sections = state.sections.filter((s) => s._id !== action.payload);
         },
         addTaskLocal: (state, action) => {
             const { sectionId, task } = action.payload;
-            const section = state.sections.find((s) => s.id === sectionId);
+            const section = state.sections.find((s) => s._id === sectionId);
             if (section) section.tasks.push(task);
         },
     },
@@ -101,34 +105,45 @@ const kanbanSlice = createSlice({
                 state.sections.push(action.payload);
             })
             .addCase(updateSection.fulfilled, (state, action) => {
-                const section = state.sections.find((s) => s.id === action.payload.sectionId);
+                const section = state.sections.find((s) => s._id === action.payload.sectionId);
                 if (section) section.name = action.payload.name;
             })
             .addCase(deleteSection.fulfilled, (state, action) => {
                 state.sections = state.sections.filter((s) => s._id !== action.payload);
             })
             .addCase(addTask.fulfilled, (state, action) => {
-                const section = state.sections.find((s) => s.id === action.payload.sectionId);
-                if (section) section.tasks.push(action.payload.task);
+                console.log("Task Added to Redux:", action.payload);
+
+                const { sectionId, task } = action.payload;
+                const section = state.sections.find((s) => s._id === sectionId);
+
+                if (section) {
+                    if (!section.tasks) section.tasks = []; // Ensure tasks array exists
+                    section.tasks.push(task);
+                }
             })
             .addCase(updateTask.fulfilled, (state, action) => {
-                state.sections.forEach((section) => {
-                    const task = section.tasks.find((t) => t.id === action.payload.taskId);
-                    if (task) Object.assign(task, action.payload.updates);
-                });
+                const { sectionId, taskId, updatedTask } = action.payload;
+                const section = state.sections.find((s) => s._id === sectionId);
+                if (section) {
+                    const taskIndex = section.tasks.findIndex((t) => t._id === taskId);
+                    if (taskIndex !== -1) {
+                        section.tasks[taskIndex] = updatedTask; // Update task in state
+                    }
+                }
             })
             .addCase(deleteTask.fulfilled, (state, action) => {
-                const section = state.sections.find((s) => s.id === action.payload.sectionId);
-                if (section) section.tasks = section.tasks.filter((t) => t.id !== action.payload.taskId);
+                const section = state.sections.find((s) => s._id === action.payload.sectionId);
+                if (section) section.tasks = section.tasks.filter((t) => t._id !== action.payload.taskId);
             })
             .addCase(moveTask.fulfilled, (state, action) => {
                 const { movedTask, sourceSectionId, destinationSectionId, sourceIndex, destinationIndex } = action.payload;
-              
-                const sourceSection = state.sections.find((s) => s.id.toString() === sourceSectionId);
-                const destinationSection = state.sections.find((s) => s.id.toString() === destinationSectionId);
-              
+
+                const sourceSection = state.sections.find((s) => s._id.toString() === sourceSectionId);
+                const destinationSection = state.sections.find((s) => s._id.toString() === destinationSectionId);
+
                 if (!sourceSection || !destinationSection) return;
-              
+
                 sourceSection.tasks.splice(sourceIndex, 1);
                 destinationSection.tasks.splice(destinationIndex, 0, movedTask);
             });

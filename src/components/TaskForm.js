@@ -21,6 +21,7 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
   };
 
   const handleSubmit = () => {
+    console.log("Form Data", formData);
     onSubmit(formData);
     setFormData({ name: "", description: "", dueDate: ""});
     onClose();
@@ -42,7 +43,6 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
           name="description"
           label="Description"
           fullWidth
-          multiline
           rows={3}
           margin="dense"
           value={formData.description}

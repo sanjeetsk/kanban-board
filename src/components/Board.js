@@ -2,11 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { DragDropContext, Droppable } from "react-beautiful-dnd";
 import { addSection, moveTask, fetchSections } from "../store/kanbanSlice";
-import { loginUser, signupUser, logoutUser } from "../store/authSlice";
+import { logoutUser } from "../store/authSlice";
 import {
   Box,
   Button,
-  Grid,
   Typography,
   Dialog,
   DialogTitle,
@@ -15,30 +14,36 @@ import {
   TextField,
   AppBar,
   Toolbar,
+  InputAdornment
 } from "@mui/material";
 import Section from "./Section";
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
+import AppleIcon from '@mui/icons-material/Apple';
+import AuthForm from "./AuthForm";
 
 const Board = () => {
   const { sections, loading } = useSelector((state) => state.kanban);
+  const auth = useSelector((state) => state.auth) || {};
+  const user = auth?.user;
+  const token = auth?.token;
+  const members = user?.members || 0;
 
   const dispatch = useDispatch();
 
-  const auth = useSelector((state) => state.auth) || {};  // FIX: Prevent undefined
-  const user = auth?.user;
-  const token = auth?.token;
-
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSectionFormOpen, setIsSectionFormOpen] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState("");
 
-  const [authFormOpen, setAuthFormOpen] = useState(false);
-  const [authMode, setAuthMode] = useState("login"); // 'login' or 'signup'
-  const [authData, setAuthData] = useState({ name: "", email: "", password: "" });
+  const [isAuthFormOpen, setIsAuthFormOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchSections());
   }, [dispatch]);
 
-
+  const handleSearch = (event) => {
+    setSearchQuery(event.target.value);
+  };
 
   const handleAddSection = () => {
     if (newSectionTitle.trim() !== "") {
@@ -73,84 +78,101 @@ const Board = () => {
     );
   };
 
-  const handleAuthSubmit = () => {
-    if (authMode === "login") {
-      dispatch(loginUser({ email: authData.email, password: authData.password }));
-    } else {
-      dispatch(signupUser(authData));
-    }
-    setAuthFormOpen(false);
-  };
-  
-
   if (loading) return <p>Loading...</p>;
 
   return (
-    <Box p={3} bgcolor="#f5f5f5" minHeight="100vh">
-      <AppBar position="static" elevation={0} sx={{ bgcolor: "white", color: "black", boxShadow: "none", mb: 2 }}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Kanban Board
-          </Typography>
-          {token ? (
-            <Button color="inherit" onClick={() => dispatch(logoutUser())}>
-              Logout
-            </Button>
-          ) : (
-            <>
-              <Button color="inherit" onClick={() => { setAuthMode("login"); setAuthFormOpen(true); }}>
-                Login
+    <div height="100vh">
+      {/* Top Navbar */}
+      <AppBar position="static" elevation={0} sx={{ bgcolor: "white", color: "black", boxShadow: "none", }}>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+          {/* Left: Logo & Title */}
+          <Box display="flex" alignItems="center">
+            <Box
+              alt="Logo"
+            ><AppleIcon fontSize="large" /></Box>
+            <Box>
+              <Typography variant="body2">Kanban Board</Typography>
+              <Typography variant="caption" color="textSecondary">
+                {sections.length} boards • {members} members
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Search Bar & Auth Buttons */}
+          <Box>
+            <TextField
+              variant="outlined"
+              placeholder="Search"
+              size="small"
+              value={searchQuery}
+              onChange={handleSearch}
+              sx={{ width: 250, bgcolor: "#F4F5F7", borderRadius: 1, mr: 2 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="disabled" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {/* Auth Buttons */}
+            {!token ? (
+              <Button variant="contained" color="primary" onClick={() => setIsAuthFormOpen(true)}>
+                Sign Up / Login
               </Button>
-              <Button color="inherit" onClick={() => { setAuthMode("signup"); setAuthFormOpen(true); }}>
-                Signup
+            ) : (
+              <Button variant="contained" color="secondary" onClick={() => dispatch(logoutUser())}>
+                Logout
               </Button>
-            </>
-          )}
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
-      {/* <Button variant="contained" color="primary" onClick={() => setIsSectionFormOpen(true)} sx={{ mt: 2 }}>
-        + Add Section
-      </Button> */}
-
+      {/* Drag & Drop Context */}
       <DragDropContext onDragEnd={onDragEnd}>
         <Box
-          //  ref={provided.innerRef}
-          //  {...provided.droppableProps}
-           sx={{
-              display: "flex",
-              height: "calc(100vh - 64px - 60px)", // Full height
-              overflowX: "auto", // Enable horizontal scrolling if columns exceed screen width
-              overflowY: "hidden",
-              backgroundColor: "white",
-              borderRadius: 2,
-              padding: 2,
-              boxShadow: 1,
-              gap: 2, // Space between sections
-              pb: 2
-           }}
+          sx={{
+            display: "flex",
+            height: "calc(100vh - 64px - 20px)", // Full height
+            overflowX: "auto",
+            overflowY: "auto",
+            padding: 1,
+            scrollbarWidth: "thin", // For Firefox
+            scrollbarColor: "#D1D5DB transparent", // Custom color
+            "&::-webkit-scrollbar": {
+              height: "5px", // Thin scrollbar
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "#D1D5DB", // Grey color
+              borderRadius: "10px",
+            },
+          }}
         >
           {sections.map((section) => (
             <Droppable key={section._id} droppableId={section._id}>
-            {(provided) => (
-                  <Box ref={provided.innerRef} {...provided.droppableProps}
+              {(provided) => (
+                <Box ref={provided.innerRef} {...provided.droppableProps}
                   sx={{
-                    minWidth: 300, // Each section is exactly 250px wide
+                    minWidth: 300,
                     maxWidth: 300,
-                    bgcolor: "#f4f4f4", // Light gray background
-                    borderRadius: 3,
-                    boxShadow: "0px 2px 10px rgba(0, 0, 0, 0.1)",
-                    p: 2,
-                    flexShrink: 0,
                   }}
-                  >
-                    <Section section={section} />
-                    {provided.placeholder}
-                  </Box>
-                )}
-              </Droppable>
+                >
+                  <Section section={section} />
+                  {provided.placeholder}
+                </Box>
+              )}
+            </Droppable>
           ))}
+          {/* Add Section Button (At End, Aligned with Section Title) */}
+          <Box sx={{ display: "flex", alignItems: "center", height: "40px", mt: "10px", ml: "10px" }}>
+            <Button variant="text" onClick={() => setIsSectionFormOpen(true)} sx={{ height: "40px", width: "200px", color: "#a2a5ab" }}>
+              <AddIcon /> Add Section
+            </Button>
+          </Box>
         </Box>
+
       </DragDropContext>
 
       {/* Add Section Popup */}
@@ -167,44 +189,9 @@ const Board = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Authentication Popup */}
-      <Dialog open={authFormOpen} onClose={() => setAuthFormOpen(false)}>
-        <DialogTitle>{authMode === "login" ? "Login" : "Signup"}</DialogTitle>
-        <DialogContent>
-          {authMode === "signup" && (
-            <TextField
-              label="Username"
-              fullWidth
-              value={authData.username}
-              onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
-              sx={{ mt: 2 }}
-            />
-          )}
-          <TextField
-            label="Email"
-            fullWidth
-            value={authData.email}
-            onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
-            sx={{ mt: 2 }}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            value={authData.password}
-            onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAuthFormOpen(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleAuthSubmit}>
-            {authMode === "login" ? "Login" : "Signup"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-    </Box>
+      {/* Auth Form Popup */}
+      <AuthForm open={isAuthFormOpen} handleClose={() => setIsAuthFormOpen(false)} />
+    </div>
   );
 };
 

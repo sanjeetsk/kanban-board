@@ -1,12 +1,45 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { deleteTask } from "../store/kanbanSlice";
-import { Box, Typography, IconButton, Menu, MenuItem } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar,
+  Button,
+} from "@mui/material";
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import dayjs from "dayjs";
+import UpdateTaskForm from "./UpdateTaskForm";
+
+// Import plugins for relative date formatting
+import relativeTime from "dayjs/plugin/relativeTime";
+import isToday from "dayjs/plugin/isToday";
+import isYesterday from "dayjs/plugin/isYesterday";
+import isTomorrow from "dayjs/plugin/isTomorrow";
+
+dayjs.extend(relativeTime);
+dayjs.extend(isToday);
+dayjs.extend(isYesterday);
+dayjs.extend(isTomorrow);
+
+const formatDueDate = (dueDate) => {
+  const date = dayjs(dueDate);
+  if (date.isToday()) return { text: "Today", color: "#48494C" };
+  if (date.isTomorrow()) return { text: "Tomorrow", color: "#3B82F6" }; // Blue
+  if (date.isYesterday()) return { text: "Yesterday", color: "#EF4444" }; // Red
+  return { text: date.format("DD MMM"), color: "#6B7280" }; // Gray
+};
+
 
 const TaskCard = ({ task, sectionId }) => {
   const dispatch = useDispatch();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [isUpdateFormOpen, setIsUpdateFormOpen] = useState(false);
+
+  const { text: dueText, color: dueColor } = formatDueDate(task.dueDate);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -21,37 +54,82 @@ const TaskCard = ({ task, sectionId }) => {
     handleMenuClose();
   };
 
+  const handleUpdateTask = () => {
+    setIsUpdateFormOpen(true);
+    handleMenuClose();
+  }
+
   return (
     <Box
-      bgcolor="#f9f9f9"
-      p={2}
-      mb={1}
-      borderRadius={2}
-      boxShadow={1}
-      position="relative"
+      sx={{
+        m: 1,
+        bgcolor: "#fff",
+        py: 1,
+        px: 2,
+        borderRadius: 2,
+        boxShadow: "0px 1px 4px rgba(0, 0, 0, 0.1)",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+      }}
     >
+      {/* Task Title and Menu Button */}
       <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="subtitle1">{task.name}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {task.name}
+        </Typography>
         <IconButton size="small" onClick={handleMenuOpen}>
-          <MoreVertIcon />
+          <MoreHorizIcon />
         </IconButton>
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-        >
+        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
           <MenuItem onClick={handleDelete}>Delete</MenuItem>
+          <MenuItem onClick={handleUpdateTask}>Update</MenuItem>
         </Menu>
       </Box>
-      <Typography variant="body2" color="textSecondary">
-        {task.description}
-      </Typography>
-      <Typography variant="caption" display="block" color="textSecondary">
-        Due: {task.dueDate}
-      </Typography>
-      <Typography variant="caption" display="block" color="textSecondary">
-        Assignee: {task.assignee}
-      </Typography>
+
+      {/* Assignee Avatar, Due Date & Task Description (All in One Line) */}
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        {/* Left Side: Avatar & Due Date */}
+        <Box display="flex" alignItems="center" gap={1}>
+          {task.assignee && (
+            <Avatar src={task.assignee.photoUrl} sx={{ width: 24, height: 24 }} />
+          )}
+          <Typography variant="caption" sx={{ fontWeight: 600, color: dueColor }}>
+            {dueText}
+          </Typography>
+        </Box>
+
+        {/* Right Side: Task Description as Button */}
+        {task.description && (
+          <Button
+            variant="contained"
+            size="small"
+            sx={{
+              bgcolor: "#F3F4F6",
+              color: "#6B7280",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+              px: 1.5,
+              py: 0.5,
+              width: "fit-content",
+            }}
+            disableElevation
+          >
+            {task.description}
+          </Button>
+        )}
+      </Box>
+
+      {/* Update Task Dialog */}
+      <UpdateTaskForm
+        open={isUpdateFormOpen}
+        onClose={() => setIsUpdateFormOpen(false)}
+        task={task}
+        sectionId={sectionId}
+      />
     </Box>
   );
 };
