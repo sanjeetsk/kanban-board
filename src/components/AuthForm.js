@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { signupUser, loginUser } from "../store/authSlice";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography } from "@mui/material";
 
 const AuthForm = ({ open, handleClose }) => {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { token, loading, error } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [isLogin, setIsLogin] = useState(true);
@@ -22,6 +22,11 @@ const AuthForm = ({ open, handleClose }) => {
       dispatch(signupUser(formData));
     }
   };
+
+  // Close form when user is authenticated
+  useEffect(() => {
+    if (token) handleClose();
+  }, [token, handleClose]);
 
   return (
     <Dialog open={open} onClose={handleClose}>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { DragDropContext, Droppable } from "react-beautiful-dnd";
-import { addSection, moveTask, fetchSections } from "../store/kanbanSlice";
+import { DndContext, closestCorners } from "@dnd-kit/core";
+import { SortableContext, arrayMove } from "@dnd-kit/sortable";
+import { addSection, moveTask, fetchSections, reorderTask } from "../store/kanbanSlice";
 import { logoutUser } from "../store/authSlice";
 import {
   Box,
@@ -41,6 +42,9 @@ const Board = () => {
     dispatch(fetchSections());
   }, [dispatch]);
 
+  // Ensure re-render when token changes
+  useEffect(() => { }, [token]);
+
   const handleSearch = (event) => {
     setSearchQuery(event.target.value);
   };
@@ -53,30 +57,30 @@ const Board = () => {
     }
   };
 
-  const onDragEnd = (result) => {
-    const { source, destination } = result;
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+  
+    // If no destination, do nothing
+    if (!over) return;
+  
+    const taskId = active.id; // ID of the dragged task
+    const sourceSectionId = active.data.current.sectionId; // Get sectionId from active task
+    const destinationSectionId = over.data.current?.sectionId; // Get sectionId from target drop area
 
-    // If dropped outside any droppable
-    if (!destination) return;
-
-    // If dropped in the same position, do nothing
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return;
+    if (!sourceSectionId || !destinationSectionId) return;
+  
+    // If dropped in the same section, do nothing
+    if (sourceSectionId === destinationSectionId) {
+      {
+        console.log("Reordering within same section...");
+        return;
+      }
     }
-
-    // Dispatch action to move the task
-    dispatch(
-      moveTask({
-        sourceSectionId: source.droppableId,
-        destinationSectionId: destination.droppableId,
-        sourceIndex: source.index,
-        destinationIndex: destination.index,
-      })
-    );
+  
+    // Dispatch moveTask action to update Redux state and backend
+    dispatch(moveTask({ taskId, sourceSectionId, destinationSectionId }));
   };
+  
 
   if (loading) return <p>Loading...</p>;
 
@@ -131,7 +135,7 @@ const Board = () => {
       </AppBar>
 
       {/* Drag & Drop Context */}
-      <DragDropContext onDragEnd={onDragEnd}>
+      <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         <Box
           sx={{
             display: "flex",
@@ -150,21 +154,19 @@ const Board = () => {
             },
           }}
         >
-          {sections.map((section) => (
-            <Droppable key={section._id} droppableId={section._id}>
-              {(provided) => (
-                <Box ref={provided.innerRef} {...provided.droppableProps}
-                  sx={{
-                    minWidth: 300,
-                    maxWidth: 300,
-                  }}
-                >
-                  <Section section={section} />
-                  {provided.placeholder}
-                </Box>
-              )}
-            </Droppable>
-          ))}
+          <SortableContext items={sections.map((s) => s._id)}>
+            {sections.map((section) => (
+              <Box key={section._id}
+                sx={{
+                  minWidth: 300,
+                  maxWidth: 300,
+                }}
+              >
+                <Section key={section._id} section={section} />
+              </Box>
+            ))}
+          </SortableContext>
+
           {/* Add Section Button (At End, Aligned with Section Title) */}
           <Box sx={{ display: "flex", alignItems: "center", height: "40px", mt: "10px", ml: "10px" }}>
             <Button variant="text" onClick={() => setIsSectionFormOpen(true)} sx={{ height: "40px", width: "200px", color: "#a2a5ab" }}>
@@ -172,8 +174,7 @@ const Board = () => {
             </Button>
           </Box>
         </Box>
-
-      </DragDropContext>
+      </DndContext>
 
       {/* Add Section Popup */}
       <Dialog open={isSectionFormOpen} onClose={() => setIsSectionFormOpen(false)}>

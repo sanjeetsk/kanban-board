@@ -51,20 +51,51 @@ export const deleteTask = createAsyncThunk("kanban/deleteTask", async ({ section
     return { sectionId, taskId };
 });
 
-export const moveTask = createAsyncThunk("kanban/moveTask", async ({ sourceSectionId, destinationSectionId, sourceIndex, destinationIndex }, { getState }) => {
-    const state = getState().kanban;
-    const sourceSection = state.sections.find((s) => s.id.toString() === sourceSectionId);
-    const destinationSection = state.sections.find((s) => s.id.toString() === destinationSectionId);
+// export const moveTask = createAsyncThunk("kanban/moveTask", async ({ sourceSectionId, destinationSectionId, sourceIndex, destinationIndex }, { getState }) => {
+//     const state = getState().kanban;
+//     const sourceSection = state.sections.find((s) => s.id.toString() === sourceSectionId);
+//     const destinationSection = state.sections.find((s) => s.id.toString() === destinationSectionId);
 
-    if (!sourceSection || !destinationSection) return;
+//     if (!sourceSection || !destinationSection) return;
 
-    const movedTask = sourceSection.tasks[sourceIndex];
+//     const movedTask = sourceSection.tasks[sourceIndex];
 
-    // Update task section in the backend
-    await API.put(`/task/${movedTask.id}`, { section: destinationSectionId });
+//     // Update task section in the backend
+//     await API.put(`/task/${movedTask.id}`, { section: destinationSectionId });
 
-    return { movedTask, sourceSectionId, destinationSectionId, sourceIndex, destinationIndex };
-});
+//     return { movedTask, sourceSectionId, destinationSectionId, sourceIndex, destinationIndex };
+// });
+
+export const moveTask = createAsyncThunk(
+    'kanban/moveTask',
+    async ({ taskId, sourceSectionId, destinationSectionId }, { dispatch }) => {
+        try {
+            console.log("ids", taskId, sourceSectionId, destinationSectionId)
+            // Call the backend API to update the task
+            const response = await API.patch(`/task/move`, {
+                taskId,
+                sourceSectionId,
+                destinationSectionId
+            });
+            console.log(response);
+
+            return response.data; // Assuming the API returns the updated task
+        } catch (error) {
+            console.error('Error moving task:', error);
+            throw error;
+        }
+    }
+);
+
+export const reorderTask = createAsyncThunk(
+    "kanban/reorderTask",
+    async ({ sectionId, newOrder }) => {
+        console.log('sectionId', sectionId, newOrder);
+        const response = await API.put(`/section/${sectionId}/reorder`, { newOrder });
+        console.log('response', response);
+        return response.data;
+    }
+);
 
 
 const kanbanSlice = createSlice({
@@ -137,15 +168,30 @@ const kanbanSlice = createSlice({
                 if (section) section.tasks = section.tasks.filter((t) => t._id !== action.payload.taskId);
             })
             .addCase(moveTask.fulfilled, (state, action) => {
-                const { movedTask, sourceSectionId, destinationSectionId, sourceIndex, destinationIndex } = action.payload;
+                const { taskId, destinationSectionId, sourceSectionId } = action.payload;
 
-                const sourceSection = state.sections.find((s) => s._id.toString() === sourceSectionId);
-                const destinationSection = state.sections.find((s) => s._id.toString() === destinationSectionId);
+                if (!sourceSectionId || !destinationSectionId || !taskId) return;
+
+                // 1️⃣ Find source & destination sections
+                const sourceSection = state.sections.find((section) => section._id === sourceSectionId);
+                const destinationSection = state.sections.find((section) => section._id === destinationSectionId);
 
                 if (!sourceSection || !destinationSection) return;
 
-                sourceSection.tasks.splice(sourceIndex, 1);
-                destinationSection.tasks.splice(destinationIndex, 0, movedTask);
+                // 2️⃣ Remove the task from source section
+                const taskIndex = sourceSection.tasks.findIndex((task) => task._id === taskId);
+                if (taskIndex !== -1) {
+                    const [task] = sourceSection.tasks.splice(taskIndex, 1); // Remove from source
+                    task.section = destinationSectionId; // Update task's section ID
+
+                    // 3️⃣ Add the task to the destination section
+                    destinationSection.tasks.push(task);
+                }
+            })
+            .addCase(reorderTask.fulfilled, (state, action) => {
+                const { sectionId, newOrder } = action.payload;
+                const section = state.sections.find((section) => section._id === sectionId);
+                section.tasks = newOrder.map(taskId => section.tasks.find(task => task._id === taskId));
             });
     },
 });
