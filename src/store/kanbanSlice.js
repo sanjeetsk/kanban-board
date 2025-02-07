@@ -51,21 +51,6 @@ export const deleteTask = createAsyncThunk("kanban/deleteTask", async ({ section
     return { sectionId, taskId };
 });
 
-// export const moveTask = createAsyncThunk("kanban/moveTask", async ({ sourceSectionId, destinationSectionId, sourceIndex, destinationIndex }, { getState }) => {
-//     const state = getState().kanban;
-//     const sourceSection = state.sections.find((s) => s.id.toString() === sourceSectionId);
-//     const destinationSection = state.sections.find((s) => s.id.toString() === destinationSectionId);
-
-//     if (!sourceSection || !destinationSection) return;
-
-//     const movedTask = sourceSection.tasks[sourceIndex];
-
-//     // Update task section in the backend
-//     await API.put(`/task/${movedTask.id}`, { section: destinationSectionId });
-
-//     return { movedTask, sourceSectionId, destinationSectionId, sourceIndex, destinationIndex };
-// });
-
 export const moveTask = createAsyncThunk(
     'kanban/moveTask',
     async ({ taskId, sourceSectionId, destinationSectionId }, { dispatch }) => {
@@ -77,7 +62,7 @@ export const moveTask = createAsyncThunk(
                 sourceSectionId,
                 destinationSectionId
             });
-            console.log(response);
+            console.log("API Move Response:",response);
 
             return response.data; // Assuming the API returns the updated task
         } catch (error) {
@@ -168,31 +153,30 @@ const kanbanSlice = createSlice({
                 if (section) section.tasks = section.tasks.filter((t) => t._id !== action.payload.taskId);
             })
             .addCase(moveTask.fulfilled, (state, action) => {
-                const { taskId, destinationSectionId, sourceSectionId } = action.payload;
-
+                const { taskId, sourceSectionId, destinationSectionId } = action.payload;
                 if (!sourceSectionId || !destinationSectionId || !taskId) return;
-
-                // 1️⃣ Find source & destination sections
-                const sourceSection = state.sections.find((section) => section._id === sourceSectionId);
-                const destinationSection = state.sections.find((section) => section._id === destinationSectionId);
-
-                if (!sourceSection || !destinationSection) return;
-
-                // 2️⃣ Remove the task from source section
-                const taskIndex = sourceSection.tasks.findIndex((task) => task._id === taskId);
-                if (taskIndex !== -1) {
-                    const [task] = sourceSection.tasks.splice(taskIndex, 1); // Remove from source
-                    task.section = destinationSectionId; // Update task's section ID
-
-                    // 3️⃣ Add the task to the destination section
-                    destinationSection.tasks.push(task);
-                }
-            })
-            .addCase(reorderTask.fulfilled, (state, action) => {
-                const { sectionId, newOrder } = action.payload;
-                const section = state.sections.find((section) => section._id === sectionId);
-                section.tasks = newOrder.map(taskId => section.tasks.find(task => task._id === taskId));
-            });
+            
+                // Find sections
+                const sourceIndex = state.sections.findIndex(s => s._id === sourceSectionId);
+                const destinationIndex = state.sections.findIndex(s => s._id === destinationSectionId);
+                if (sourceIndex === -1 || destinationIndex === -1) return;
+            
+                // Find task
+                const taskIndex = state.sections[sourceIndex].tasks.findIndex(t => t._id === taskId);
+                if (taskIndex === -1) return;
+            
+                // Extract the task
+                const task = { ...state.sections[sourceIndex].tasks[taskIndex], section: destinationSectionId };
+            
+                // Remove from source section
+                state.sections[sourceIndex].tasks = state.sections[sourceIndex].tasks.filter(t => t._id !== taskId);
+            
+                // Add to destination section
+                state.sections[destinationIndex].tasks = [...state.sections[destinationIndex].tasks, task];
+            
+                // 🔥 Force React to detect the state update
+                state.sections = [...state.sections];
+            });            
     },
 });
 

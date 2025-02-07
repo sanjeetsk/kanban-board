@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
-import { SortableContext } from "@dnd-kit/sortable";
-import { useDispatch } from "react-redux";
-import { addTask, deleteSection, updateSection } from "../store/kanbanSlice";
+import { useDrop } from "react-dnd";
+import { useDispatch} from "react-redux";
+import { addTask, deleteSection, updateSection, moveTask } from "../store/kanbanSlice";
 import {
   Box,
   IconButton,
@@ -24,7 +23,21 @@ const Section = ({ section }) => {
   // State for section menu
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
 
-  const { setNodeRef } = useDroppable({ id: section._id });
+  // Drop handling
+  const [, drop] = useDrop({
+    accept: "TASK",
+    drop: (item) => {
+      if (item.sourceSectionId !== section._id) {
+        dispatch(moveTask({
+          taskId: item.taskId,
+          sourceSectionId: item.sourceSectionId,
+          destinationSectionId: section._id,
+        })).then(() => {
+          dispatch(updateSection({ sectionId: section._id, name: section.name }));
+        });
+      }
+    }
+  });
 
   const handleAddTask = (taskData) => {
     const newTask = { ...taskData, section: section._id };
@@ -47,7 +60,7 @@ const Section = ({ section }) => {
   };
 
   return (
-    <Box ref={setNodeRef} height="100%" bgcolor="white" p={2}  >
+    <Box ref={drop} height="100%" bgcolor="white" p={2} >
       {/* Section Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center">
         <h6 className="section-title">{section.name}</h6>
@@ -94,11 +107,9 @@ const Section = ({ section }) => {
         )}
 
         {/* Render Tasks */}
-        <SortableContext items={section.tasks.map((task) => task._id)}>
-          {section.tasks.map((task) => (
-            <TaskCard key={task._id} task={task} sectionId={section._id} />
-          ))}
-        </SortableContext>
+        {section.tasks.map((task) => (
+          <TaskCard key={task._id} task={task} sectionId={section._id} />
+        ))}
 
 
         {/* If tasks exist, show "+ Add Task" at the bottom */}
