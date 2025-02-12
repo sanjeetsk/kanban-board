@@ -12,9 +12,14 @@ const initialState = {
     error: null,
 };
 
-export const addSection = createAsyncThunk("kanban/addSection", async (name) => {
-    const response = await API.post('/section', name);
-    return response.data;
+export const addSection = createAsyncThunk("kanban/addSection", async (sectionData) => {
+    try {
+        const response = await API.post('/section', sectionData);
+        return response.data;
+    } catch (error) {
+        console.error('Error adding section:', error);
+        throw error;
+    }
 });
 
 export const updateSection = createAsyncThunk(
@@ -55,33 +60,25 @@ export const moveTask = createAsyncThunk(
     'kanban/moveTask',
     async ({ taskId, sourceSectionId, destinationSectionId }, { dispatch }) => {
         try {
-            console.log("ids", taskId, sourceSectionId, destinationSectionId)
             // Call the backend API to update the task
             const response = await API.patch(`/task/move`, {
                 taskId,
                 sourceSectionId,
                 destinationSectionId
             });
-            console.log("API Move Response:",response);
 
-            return response.data; // Assuming the API returns the updated task
+            return {
+                taskId,
+                sourceSectionId,
+                destinationSectionId,
+                task: response.data.task
+            };
         } catch (error) {
             console.error('Error moving task:', error);
             throw error;
         }
     }
 );
-
-export const reorderTask = createAsyncThunk(
-    "kanban/reorderTask",
-    async ({ sectionId, newOrder }) => {
-        console.log('sectionId', sectionId, newOrder);
-        const response = await API.put(`/section/${sectionId}/reorder`, { newOrder });
-        console.log('response', response);
-        return response.data;
-    }
-);
-
 
 const kanbanSlice = createSlice({
     name: "kanban",
@@ -117,8 +114,21 @@ const kanbanSlice = createSlice({
                 state.loading = false;
                 state.error = action.error.message;
             })
+            .addCase(addSection.pending, (state) => {
+                state.loading = true;
+            })
             .addCase(addSection.fulfilled, (state, action) => {
-                state.sections.push(action.payload);
+                state.loading = false;
+                // Ensure the new section has a tasks array
+                const newSection = {
+                    ...action.payload,
+                    tasks: []
+                };
+                state.sections.push(newSection);
+            })
+            .addCase(addSection.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.error.message;
             })
             .addCase(updateSection.fulfilled, (state, action) => {
                 const section = state.sections.find((s) => s._id === action.payload.sectionId);
@@ -134,7 +144,7 @@ const kanbanSlice = createSlice({
                 const section = state.sections.find((s) => s._id === sectionId);
 
                 if (section) {
-                    if (!section.tasks) section.tasks = []; // Ensure tasks array exists
+                    if (!section.tasks) section.tasks = [];
                     section.tasks.push(task);
                 }
             })
@@ -144,7 +154,7 @@ const kanbanSlice = createSlice({
                 if (section) {
                     const taskIndex = section.tasks.findIndex((t) => t._id === taskId);
                     if (taskIndex !== -1) {
-                        section.tasks[taskIndex] = updatedTask; // Update task in state
+                        section.tasks[taskIndex] = updatedTask;
                     }
                 }
             })
@@ -153,30 +163,20 @@ const kanbanSlice = createSlice({
                 if (section) section.tasks = section.tasks.filter((t) => t._id !== action.payload.taskId);
             })
             .addCase(moveTask.fulfilled, (state, action) => {
-                const { taskId, sourceSectionId, destinationSectionId } = action.payload;
-                if (!sourceSectionId || !destinationSectionId || !taskId) return;
-            
-                // Find sections
-                const sourceIndex = state.sections.findIndex(s => s._id === sourceSectionId);
-                const destinationIndex = state.sections.findIndex(s => s._id === destinationSectionId);
-                if (sourceIndex === -1 || destinationIndex === -1) return;
-            
-                // Find task
-                const taskIndex = state.sections[sourceIndex].tasks.findIndex(t => t._id === taskId);
-                if (taskIndex === -1) return;
-            
-                // Extract the task
-                const task = { ...state.sections[sourceIndex].tasks[taskIndex], section: destinationSectionId };
-            
-                // Remove from source section
-                state.sections[sourceIndex].tasks = state.sections[sourceIndex].tasks.filter(t => t._id !== taskId);
-            
-                // Add to destination section
-                state.sections[destinationIndex].tasks = [...state.sections[destinationIndex].tasks, task];
-            
-                // 🔥 Force React to detect the state update
-                state.sections = [...state.sections];
-            });            
+                const { taskId, sourceSectionId, destinationSectionId, task } = action.payload;
+
+                const sourceSection = state.sections.find(s => s._id === sourceSectionId);
+                const destSection = state.sections.find(s => s._id === destinationSectionId);
+
+                if (sourceSection && destSection) {
+                    // Remove task from source section
+                    sourceSection.tasks = sourceSection.tasks.filter(t => t._id !== taskId);
+
+                    // Add task to destination section
+                    if (!destSection.tasks) destSection.tasks = [];
+                    destSection.tasks.push(task);
+                }
+            });
     },
 });
 

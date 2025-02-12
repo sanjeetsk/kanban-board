@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo, useCallback } from "react";
 import { useDrag } from "react-dnd";
 import { useDispatch } from "react-redux";
 import { deleteTask } from "../store/kanbanSlice";
@@ -35,7 +35,7 @@ const formatDueDate = (dueDate) => {
 };
 
 
-const TaskCard = ({ task, sectionId }) => {
+const TaskCard = memo(({ task, sectionId }) => {
   const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState(null);
   const [isUpdateFormOpen, setIsUpdateFormOpen] = useState(false);
@@ -43,33 +43,38 @@ const TaskCard = ({ task, sectionId }) => {
   const { text: dueText, color: dueColor } = formatDueDate(task.dueDate);
 
   // Drag handling
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag] = useDrag({
     type: "TASK",
-    item: { taskId: task._id, sourceSectionId: sectionId },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+    item: () => ({
+      taskId: task._id,
+      sourceSectionId: sectionId,
+      task: task
     }),
-  }));
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
 
-  const handleMenuOpen = (event) => {
+  const handleMenuOpen = useCallback((event) => {
+    event.stopPropagation();
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleMenuClose = () => {
+  const handleMenuClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (window.confirm(`Are you sure you want to delete the task "${task.name}"?`)) {
       dispatch(deleteTask({ sectionId, taskId: task._id }));
     }
     handleMenuClose();
-  };
+  }, [dispatch, handleMenuClose, sectionId, task._id, task.name]);
 
-  const handleUpdateTask = () => {
+  const handleUpdateTask = useCallback(() => {
     setIsUpdateFormOpen(true);
     handleMenuClose();
-  }
+  }, [handleMenuClose]);
 
   return (
     <Box
@@ -87,8 +92,12 @@ const TaskCard = ({ task, sectionId }) => {
         gap: 1,
         opacity: isDragging ? 0.5 : 1, // Reduce opacity while dragging
         cursor: "grab",
-        transition: "opacity 0.2s",
-        // cursor: "grab"
+        transition: 'all 0.15s ease',
+        willChange: 'transform, opacity',
+        transform: 'translate3d(0,0,0)',
+        '&:hover': {
+          boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.15)",
+        }
       }}
     >
       {/* Task Title and Menu Button */}
@@ -96,7 +105,7 @@ const TaskCard = ({ task, sectionId }) => {
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
           {task.name}
         </Typography>
-        <IconButton size="small" onClick={handleMenuOpen}>
+        <IconButton size="small" onClick={handleMenuOpen} sx={{ '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}>
           <MoreHorizIcon />
         </IconButton>
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} disableAutoFocusItem MenuListProps={{ onClick: handleMenuClose }}>
@@ -110,7 +119,7 @@ const TaskCard = ({ task, sectionId }) => {
         {/* Left Side: Avatar & Due Date */}
         <Box display="flex" alignItems="center" gap={1}>
           {task.assignee && (
-            <Avatar src={task.assignee.photoUrl} sx={{ width: 24, height: 24 }} />
+            <Avatar src={task.assignee.photoUrl} sx={{ width: 24, height: 24, fontSize: '0.875rem'}} />
           )}
           <Typography variant="caption" sx={{ fontWeight: 600, color: dueColor }}>
             {dueText}
@@ -132,6 +141,9 @@ const TaskCard = ({ task, sectionId }) => {
               px: 1.5,
               py: 0.5,
               width: "fit-content",
+              '&:hover': {
+                bgcolor: "#E5E7EB",
+              }
             }}
             disableElevation
           >
@@ -149,6 +161,6 @@ const TaskCard = ({ task, sectionId }) => {
       />
     </Box>
   );
-};
+});
 
 export default TaskCard;

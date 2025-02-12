@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { addSection, fetchSections} from "../store/kanbanSlice";
+import { addSection, fetchSections } from "../store/kanbanSlice";
 import { logoutUser } from "../store/authSlice";
 import {
   Box,
@@ -13,15 +13,27 @@ import {
   TextField,
   AppBar,
   Toolbar,
-  InputAdornment
+  InputAdornment,
+  Avatar,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Menu,
+  MenuItem,
+  Drawer,
 } from "@mui/material";
 import Section from "./Section";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import AppleIcon from '@mui/icons-material/Apple';
+import MenuIcon from '@mui/icons-material/Menu';
 import AuthForm from "./AuthForm";
 
 const Board = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+
   const { sections, loading } = useSelector((state) => state.kanban);
   const auth = useSelector((state) => state.auth) || {};
   const user = auth?.user;
@@ -35,6 +47,9 @@ const Board = () => {
   const [newSectionTitle, setNewSectionTitle] = useState("");
 
   const [isAuthFormOpen, setIsAuthFormOpen] = useState(false);
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
 
   useEffect(() => {
     dispatch(fetchSections());
@@ -55,6 +70,62 @@ const Board = () => {
     }
   };
 
+  const handleUserMenuOpen = (event) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    handleUserMenuClose();
+  };
+
+  const renderAuthButton = () => {
+    if (!token) {
+      return (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setIsAuthFormOpen(true)}
+          size={isMobile ? "small" : "medium"}
+        >
+          Sign Up / Login
+        </Button>
+      );
+    }
+
+    return (
+      <Box display="flex" alignItems="center" gap={1}>
+        <IconButton onClick={handleUserMenuOpen}>
+          <Avatar
+            src={user?.userPhoto}
+            alt={user?.name}
+            sx={{
+              width: isMobile ? 32 : 40,
+              height: isMobile ? 32 : 40,
+              cursor: 'pointer'
+            }}
+          >
+            {user?.name ? user.name[0].toUpperCase() : '?'}
+          </Avatar>
+        </IconButton>
+        <Menu
+          anchorEl={userMenuAnchorEl}
+          open={Boolean(userMenuAnchorEl)}
+          onClose={handleUserMenuClose}
+        >
+          <MenuItem>
+            <Typography variant="body2">{user?.name}</Typography>
+          </MenuItem>
+          <MenuItem onClick={handleLogout}>Logout</MenuItem>
+        </Menu>
+      </Box>
+    );
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -64,50 +135,95 @@ const Board = () => {
         <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
           {/* Left: Logo & Title */}
-          <Box display="flex" alignItems="center">
-            <Box
-              alt="Logo"
-            ><AppleIcon fontSize="large" /></Box>
-            <Box>
-              <Typography variant="body2">Kanban Board</Typography>
-              <Typography variant="caption" color="textSecondary">
-                {sections.length} boards • {members} members
-              </Typography>
-            </Box>
+          <Box display="flex" alignItems="center" gap={1}>
+            {isMobile && (
+              <IconButton
+                color="inherit"
+                onClick={() => setMobileMenuOpen(true)}
+                edge="start"
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            <AppleIcon fontSize={isMobile ? "medium" : "large"} />
+            {!isMobile && (
+              <Box>
+                <Typography variant={isMobile ? "body2" : "body1"}>Kanban Board</Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {sections.length} boards • {members} members
+                </Typography>
+              </Box>
+            )}
           </Box>
 
           {/* Search Bar & Auth Buttons */}
-          <Box>
-            <TextField
-              variant="outlined"
-              placeholder="Search"
-              size="small"
-              value={searchQuery}
-              onChange={handleSearch}
-              sx={{ width: 250, bgcolor: "#F4F5F7", borderRadius: 1, mr: 2 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="disabled" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            {/* Auth Buttons */}
-            {!token ? (
-              <Button variant="contained" color="primary" onClick={() => setIsAuthFormOpen(true)}>
-                Sign Up / Login
-              </Button>
-            ) : (
-              <Button variant="contained" color="secondary" onClick={() => dispatch(logoutUser())}>
-                Logout
-              </Button>
+          <Box
+            display="flex"
+            alignItems="center"
+            gap={2}
+            sx={{
+              order: isMobile ? 2 : 0,
+              width: isMobile ? '100%' : 'auto',
+              mt: isMobile ? 1 : 0
+            }}
+          >
+            {!isMobile && (
+              <TextField
+                variant="outlined"
+                placeholder="Search"
+                size="small"
+                value={searchQuery}
+                onChange={handleSearch}
+                sx={{
+                  width: isTablet ? 150 : 250,
+                  bgcolor: "#F4F5F7",
+                  borderRadius: 1
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="disabled" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
             )}
+            {renderAuthButton()}
           </Box>
         </Toolbar>
       </AppBar>
 
-      {/* Drag & Drop Context */}
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="left"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      >
+        <Box sx={{ width: 250, p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Kanban Board</Typography>
+          <TextField
+            variant="outlined"
+            placeholder="Search"
+            size="small"
+            fullWidth
+            value={searchQuery}
+            onChange={handleSearch}
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="disabled" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Typography variant="body2" color="textSecondary">
+            {sections.length} boards • {members} members
+          </Typography>
+        </Box>
+      </Drawer>
+
+      {/* Board Content */}
       <Box
         sx={{
           display: "flex",
@@ -129,8 +245,9 @@ const Board = () => {
         {sections.map((section) => (
           <Box key={section._id}
             sx={{
-              minWidth: 300,
-              maxWidth: 300,
+              minWidth: isMobile ? "85vw" : 300,
+              maxWidth: isMobile ? "85vw" : 300,
+              mr: 2
             }}
           >
             <Section key={`${section._id}-${section.tasks.length}`} section={section} />
@@ -163,6 +280,6 @@ const Board = () => {
       <AuthForm open={isAuthFormOpen} handleClose={() => setIsAuthFormOpen(false)} />
     </div>
   );
-};
+}
 
 export default Board;

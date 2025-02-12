@@ -1,30 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { useDrop } from "react-dnd";
-import { useDispatch} from "react-redux";
-import { addTask, deleteSection, updateSection, moveTask } from "../store/kanbanSlice";
+import { useDispatch } from "react-redux";
+import { addTask, deleteSection, updateSection, moveTask, addSection } from "../store/kanbanSlice";
 import {
   Box,
   IconButton,
   Menu,
   MenuItem,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from "@mui/material";
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from "@mui/icons-material/Add";
 import TaskCard from "./TaskCard";
 import TaskForm from "./TaskForm";
+import dayjs from "dayjs";
 
-const Section = ({ section }) => {
+const Section = memo(({ section }) => {
   const dispatch = useDispatch();
-
-  // State for task form
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
-
-  // State for section menu
+  const [isSectionFormOpen, setIsSectionFormOpen] = useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [newSectionTitle, setNewSectionTitle] = useState("");
 
-  // Drop handling
-  const [, drop] = useDrop({
+  const [{ isOver }, drop] = useDrop({
     accept: "TASK",
     drop: (item) => {
       if (item.sourceSectionId !== section._id) {
@@ -32,16 +35,37 @@ const Section = ({ section }) => {
           taskId: item.taskId,
           sourceSectionId: item.sourceSectionId,
           destinationSectionId: section._id,
-        })).then(() => {
-          dispatch(updateSection({ sectionId: section._id, name: section.name }));
-        });
+          task: item.task
+        }));
       }
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+    hover: (item, monitor) => {
+      if (!monitor.isOver({ shallow: true })) return;
+      if (item.sourceSectionId === section._id) return;
     }
   });
 
   const handleAddTask = (taskData) => {
     const newTask = { ...taskData, section: section._id };
     dispatch(addTask(newTask));
+  };
+
+  const handleAddSection = () => {
+    if (newSectionTitle.trim() !== "") {
+      // Calculate new date (current section's date + 5 minutes)
+      const currentSectionDate = dayjs(section.createdAt);
+      const newDate = currentSectionDate.add(5, 'minute').toISOString();
+
+      dispatch(addSection({ 
+        name: newSectionTitle,
+        createdAt: newDate
+      }));
+      setNewSectionTitle("");
+      setIsSectionFormOpen(false);
+    }
   };
 
   const handleDeleteSection = () => {
@@ -60,12 +84,22 @@ const Section = ({ section }) => {
   };
 
   return (
-    <Box ref={drop} height="100%" bgcolor="white" p={2} >
-      {/* Section Header */}
+    <Box 
+      ref={drop} 
+      height="100%" 
+      bgcolor="white" 
+      p={2}
+      sx={{
+        opacity: isOver ? 0.7 : 1,
+        transition: 'opacity 0.15s ease',
+        willChange: 'opacity',
+        transform: 'translate3d(0,0,0)',
+      }}
+    >
       <Box display="flex" justifyContent="space-between" alignItems="center">
         <h6 className="section-title">{section.name}</h6>
         <Box>
-          <IconButton onClick={() => setIsTaskFormOpen(true)}>
+          <IconButton onClick={() => setIsSectionFormOpen(true)}>
             <AddIcon />
           </IconButton>
           <IconButton
@@ -89,7 +123,6 @@ const Section = ({ section }) => {
         </Box>
       </Box>
 
-      {/* Section Body */}
       <Box
         mt={1}
         sx={{
@@ -97,38 +130,61 @@ const Section = ({ section }) => {
           bgcolor: "#F5F5F5",
           padding: 1,
           borderRadius: 2,
+          minHeight: "200px",
+          transform: 'translate3d(0,0,0)',
         }}
       >
-        {/* If no tasks, show "+ Add Task" at the top */}
-        {section.tasks.length === 0 && (
+        {(!section.tasks || section.tasks.length === 0) && (
           <Button variant="text" fullWidth onClick={() => setIsTaskFormOpen(true)} sx={{ color: "#a2a5ab", mt: 1 }}>
             + Add Task
           </Button>
         )}
 
-        {/* Render Tasks */}
-        {section.tasks.map((task) => (
-          <TaskCard key={task._id} task={task} sectionId={section._id} />
+        {section.tasks?.map((task) => (
+          <TaskCard 
+            key={`${task._id}-${section._id}`} 
+            task={task} 
+            sectionId={section._id} 
+          />
         ))}
 
-
-        {/* If tasks exist, show "+ Add Task" at the bottom */}
-        {section.tasks.length > 0 && (
+        {section.tasks?.length > 0 && (
           <Button variant="text" fullWidth onClick={() => setIsTaskFormOpen(true)} sx={{ color: "#a2a5ab", mt: 1 }}>
             + Add Task
           </Button>
         )}
       </Box>
 
-      {/* Task Form Popup */}
+      {/* Add Section Dialog */}
+      <Dialog open={isSectionFormOpen} onClose={() => setIsSectionFormOpen(false)}>
+        <DialogTitle>Add New Section</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Section Title"
+            fullWidth
+            value={newSectionTitle}
+            onChange={(e) => setNewSectionTitle(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsSectionFormOpen(false)}>Cancel</Button>
+          <Button onClick={handleAddSection} variant="contained" color="primary">
+            Add Section
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Task Dialog */}
       <TaskForm
         open={isTaskFormOpen}
         onClose={() => setIsTaskFormOpen(false)}
         onSubmit={handleAddTask}
-        defaultAssignee="Current User" // Replace with logged-in user if available
+        defaultAssignee="Current User"
       />
-    </Box >
+    </Box>
   );
-};
+});
 
 export default Section;

@@ -1,77 +1,109 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { updateTask } from "../store/kanbanSlice";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  TextField,
   DialogActions,
-  Button
+  TextField,
+  Button,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 
 const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
   const dispatch = useDispatch();
-
-  const [updatedTask, setUpdatedTask] = useState({
-    name: task.name,
-    description: task.description,
-    dueDate: dayjs(task.dueDate).format("YYYY-MM-DD"),
+  const [taskData, setTaskData] = useState({
+    name: "",
+    description: "",
+    dueDate: dayjs(),
   });
+
+  useEffect(() => {
+    if (task) {
+      setTaskData({
+        name: task.name || "",
+        description: task.description || "",
+        dueDate: dayjs(task.dueDate),
+      });
+    }
+  }, [task]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedTask((prev) => ({ ...prev, [name]: value }));
+    setTaskData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmitUpdate = () => {
-    dispatch(updateTask({ 
-      taskId: task._id, 
-      sectionId, 
-      updatedTaskData: updatedTask 
+  const handleDateChange = (newDate) => {
+    setTaskData((prev) => ({
+      ...prev,
+      dueDate: newDate,
     }));
+  };
+
+  const handleSubmit = () => {
+    dispatch(
+      updateTask({
+        taskId: task._id,
+        taskData: {
+          ...taskData,
+          dueDate: taskData.dueDate.toISOString(),
+          section: sectionId,
+        },
+      })
+    );
     onClose();
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Update Task</DialogTitle>
       <DialogContent>
         <TextField
+          autoFocus
           margin="dense"
+          name="name"
           label="Task Name"
           type="text"
           fullWidth
-          name="name"
-          value={updatedTask.name}
+          value={taskData.name}
           onChange={handleChange}
+          sx={{ mb: 2 }}
         />
         <TextField
           margin="dense"
+          name="description"
           label="Description"
           type="text"
           fullWidth
-          name="description"
-          value={updatedTask.description}
+          multiline
+          rows={3}
+          value={taskData.description}
           onChange={handleChange}
+          sx={{ mb: 2 }}
         />
-        <TextField
-          margin="dense"
-          label="Due Date"
-          type="date"
-          fullWidth
-          name="dueDate"
-          value={updatedTask.dueDate}
-          onChange={handleChange}
-        />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="Due Date"
+            value={taskData.dueDate}
+            onChange={handleDateChange}
+            renderInput={(params) => <TextField {...params} fullWidth />}
+            sx={{ mb: 2 }}
+          />
+        </LocalizationProvider>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} color="secondary">
           Cancel
         </Button>
-        <Button onClick={handleSubmitUpdate} color="primary">
-          Update
+        <Button onClick={handleSubmit} color="primary" variant="contained">
+          Update Task
         </Button>
       </DialogActions>
     </Dialog>
