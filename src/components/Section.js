@@ -18,7 +18,6 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import AddIcon from "@mui/icons-material/Add";
 import TaskCard from "./TaskCard";
 import TaskForm from "./TaskForm";
-import dayjs from "dayjs";
 
 const Section = memo(({ section }) => {
   const dispatch = useDispatch();
@@ -55,14 +54,11 @@ const Section = memo(({ section }) => {
 
   const handleAddSection = () => {
     if (newSectionTitle.trim() !== "") {
-      // Calculate new date (current section's date + 5 minutes)
-      const currentSectionDate = dayjs(section.createdAt);
-      const newDate = currentSectionDate.add(5, 'minute').toISOString();
-
-      dispatch(addSection({ 
+      const sectionData = {
         name: newSectionTitle,
-        createdAt: newDate
-      }));
+        selectedSectionId: section._id
+      };
+      dispatch(addSection(sectionData));
       setNewSectionTitle("");
       setIsSectionFormOpen(false);
     }
@@ -156,7 +152,10 @@ const Section = memo(({ section }) => {
       </Box>
 
       {/* Add Section Dialog */}
-      <Dialog open={isSectionFormOpen} onClose={() => setIsSectionFormOpen(false)}>
+      <Dialog open={isSectionFormOpen} onClose={() => {
+        setIsSectionFormOpen(false);
+        setNewSectionTitle("");
+      }}>
         <DialogTitle>Add New Section</DialogTitle>
         <DialogContent>
           <TextField
@@ -169,7 +168,12 @@ const Section = memo(({ section }) => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsSectionFormOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setIsSectionFormOpen(false);
+            setNewSectionTitle("");
+          }}>
+            Cancel
+          </Button>
           <Button onClick={handleAddSection} variant="contained" color="primary">
             Add Section
           </Button>

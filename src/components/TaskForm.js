@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import {
   Dialog,
   DialogTitle,
@@ -9,11 +10,24 @@ import {
 } from "@mui/material";
 
 const TaskForm = ({ open, onClose, onSubmit }) => {
+
+  // Get logged-in user from Redux store
+  const user = useSelector((state) => state.auth.user);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     dueDate: "",
+    assignee: user ? user.id : null, // Auto-set assignee if user is logged in
   });
+
+  // Update assignee when the user state changes
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      assignee: user ? user.id : null,
+    }));
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,7 +37,7 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
   const handleSubmit = () => {
     console.log("Form Data", formData);
     onSubmit(formData);
-    setFormData({ name: "", description: "", dueDate: ""});
+    setFormData({ name: "", description: "", dueDate: "", assignee: user ? user.id : null});
     onClose();
   };
 
@@ -63,7 +77,7 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
           label="Assignee"
           fullWidth
           margin="dense"
-          value={formData.assignee}
+          value={user ? `User ID: ${formData.assignee}` : "Guest"}
           onChange={handleChange}
           disabled
         />

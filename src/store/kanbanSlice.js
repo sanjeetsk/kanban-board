@@ -46,8 +46,8 @@ export const addTask = createAsyncThunk("kanban/addTask", async (taskData) => {
     };
 });
 
-export const updateTask = createAsyncThunk("kanban/updateTask", async ({ taskId, sectionId, updatedTaskData }) => {
-    const response = await API.put(`/task/${taskId}`, updatedTaskData);
+export const updateTask = createAsyncThunk("kanban/updateTask", async ({ taskId, sectionId, taskData }) => {
+    const response = await API.put(`/task/${taskId}`, taskData);
     return { sectionId, taskId, updatedTask: response.data.task };
 });
 
@@ -125,6 +125,8 @@ const kanbanSlice = createSlice({
                     tasks: []
                 };
                 state.sections.push(newSection);
+                // Sort sections based on createdAt timestamp
+                state.sections.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
             })
             .addCase(addSection.rejected, (state, action) => {
                 state.loading = false;

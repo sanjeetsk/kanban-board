@@ -51,6 +51,7 @@ const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
     dispatch(
       updateTask({
         taskId: task._id,
+        sectionId,
         taskData: {
           ...taskData,
           dueDate: taskData.dueDate.toISOString(),
@@ -82,7 +83,6 @@ const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
           label="Description"
           type="text"
           fullWidth
-          multiline
           rows={3}
           value={taskData.description}
           onChange={handleChange}
@@ -93,7 +93,7 @@ const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
             label="Due Date"
             value={taskData.dueDate}
             onChange={handleDateChange}
-            renderInput={(params) => <TextField {...params} fullWidth />}
+            slotProps={{ textField: { fullWidth: true, margin: "dense" } }}
             sx={{ mb: 2 }}
           />
         </LocalizationProvider>

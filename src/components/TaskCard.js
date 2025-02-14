@@ -10,6 +10,7 @@ import {
   MenuItem,
   Avatar,
   Button,
+  Tooltip,
 } from "@mui/material";
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import dayjs from "dayjs";
@@ -118,9 +119,12 @@ const TaskCard = memo(({ task, sectionId }) => {
       <Box display="flex" alignItems="center" justifyContent="space-between">
         {/* Left Side: Avatar & Due Date */}
         <Box display="flex" alignItems="center" gap={1}>
-          {task.assignee && (
-            <Avatar src={task.assignee.photoUrl} sx={{ width: 24, height: 24, fontSize: '0.875rem'}} />
-          )}
+          <Tooltip title={task.assignee?.name || "Unassigned"} arrow>
+            <Avatar
+              src={task.assignee?.userPhoto || "https://avatar.iran.liara.run/public"}
+              sx={{ width: 24, height: 24, fontSize: "0.875rem" }}
+            />
+          </Tooltip>
           <Typography variant="caption" sx={{ fontWeight: 600, color: dueColor }}>
             {dueText}
           </Typography>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { addSection, fetchSections } from "../store/kanbanSlice";
-import { logoutUser } from "../store/authSlice";
+import { logoutUser, fetchUserCount } from "../store/authSlice";
 import {
   Box,
   Button,
@@ -38,7 +38,9 @@ const Board = () => {
   const auth = useSelector((state) => state.auth) || {};
   const user = auth?.user;
   const token = auth?.token;
-  const members = user?.members || 0;
+  const userCount = useSelector((state) => state.auth.userCount);
+
+  console.log("count",userCount);
 
   const dispatch = useDispatch();
 
@@ -57,6 +59,10 @@ const Board = () => {
 
   // Ensure re-render when token changes
   useEffect(() => { }, [token]);
+
+  useEffect(() => {
+    dispatch(fetchUserCount()); // Fetch user count on mount
+  }, [dispatch]);
 
   const handleSearch = (event) => {
     setSearchQuery(event.target.value);
@@ -150,7 +156,7 @@ const Board = () => {
               <Box>
                 <Typography variant={isMobile ? "body2" : "body1"}>Kanban Board</Typography>
                 <Typography variant="caption" color="textSecondary">
-                  {sections.length} boards • {members} members
+                  {sections.length} boards • {userCount} members
                 </Typography>
               </Box>
             )}
@@ -218,7 +224,7 @@ const Board = () => {
             }}
           />
           <Typography variant="body2" color="textSecondary">
-            {sections.length} boards • {members} members
+            {sections.length} boards • {userCount} members
           </Typography>
         </Box>
       </Drawer>

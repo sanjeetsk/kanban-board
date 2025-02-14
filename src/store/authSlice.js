@@ -1,6 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import API from "../Axios/api";
 
+export const fetchUserCount = createAsyncThunk("kanban/fetchUserCount", async () => {
+  const response = await API.get("/auth/count");
+  console.log("mem", response.data.totalUsers);
+  return response.data.totalUsers;
+});
+
 export const loginUser = createAsyncThunk("auth/login", async (credentials, { rejectWithValue }) => {
   try {
     const response = await API.post("/auth/login", credentials);
@@ -27,7 +33,7 @@ export const logoutUser = createAsyncThunk("auth/logout", async () => {
 
 const authSlice = createSlice({
   name: "auth",
-  initialState: { user: null, token: localStorage.getItem("token"), loading: false, error: null, signupSuccess: false},
+  initialState: { user: null, token: localStorage.getItem("token"), loading: false, error: null, signupSuccess: false, userCount: 0},
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -67,6 +73,9 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.signupSuccess = false;
+    })
+    .addCase(fetchUserCount.fulfilled, (state, action) => {
+      state.userCount = action.payload;
     });
   },
 });
