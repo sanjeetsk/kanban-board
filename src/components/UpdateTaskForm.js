@@ -20,6 +20,7 @@ const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
     name: "",
     description: "",
     dueDate: dayjs(),
+    assignee: ""
   });
 
   useEffect(() => {
@@ -28,6 +29,7 @@ const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
         name: task.name || "",
         description: task.description || "",
         dueDate: dayjs(task.dueDate),
+        assignee: task.assignee || "",
       });
     }
   }, [task]);
@@ -85,6 +87,16 @@ const UpdateTaskForm = ({ open, onClose, task, sectionId }) => {
           fullWidth
           rows={3}
           value={taskData.description}
+          onChange={handleChange}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          margin="dense"
+          name="assignee"
+          label="Assignee"
+          type="text"
+          fullWidth
+          value={taskData.assignee}
           onChange={handleChange}
           sx={{ mb: 2 }}
         />

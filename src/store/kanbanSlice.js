@@ -17,7 +17,6 @@ export const addSection = createAsyncThunk("kanban/addSection", async (sectionDa
         const response = await API.post('/section', sectionData);
         return response.data;
     } catch (error) {
-        console.error('Error adding section:', error);
         throw error;
     }
 });
@@ -25,7 +24,6 @@ export const addSection = createAsyncThunk("kanban/addSection", async (sectionDa
 export const updateSection = createAsyncThunk(
     "kanban/updateSection",
     async ({ sectionId, name }) => {
-        console.log('sectionIdss', `/section/${sectionId}`, name);
         await API.put(`/section/${sectionId}`, { name });
         return { sectionId, name };
     }
@@ -37,12 +35,10 @@ export const deleteSection = createAsyncThunk("kanban/deleteSection", async (sec
 });
 
 export const addTask = createAsyncThunk("kanban/addTask", async (taskData) => {
-    console.log('data', taskData);
-    // Send the taskData directly, as it already contains `section`
     const response = await API.post("/task", taskData);
     return {
         sectionId: taskData.section,
-        task: response.data.task // Extracting the actual task object 
+        task: response.data.task,
     };
 });
 
@@ -74,7 +70,6 @@ export const moveTask = createAsyncThunk(
                 task: response.data.task
             };
         } catch (error) {
-            console.error('Error moving task:', error);
             throw error;
         }
     }
@@ -140,14 +135,14 @@ const kanbanSlice = createSlice({
                 state.sections = state.sections.filter((s) => s._id !== action.payload);
             })
             .addCase(addTask.fulfilled, (state, action) => {
-                console.log("Task Added to Redux:", action.payload);
 
                 const { sectionId, task } = action.payload;
                 const section = state.sections.find((s) => s._id === sectionId);
 
                 if (section) {
                     if (!section.tasks) section.tasks = [];
-                    section.tasks.push(task);
+                    section.tasks.push({...task
+                    });
                 }
             })
             .addCase(updateTask.fulfilled, (state, action) => {

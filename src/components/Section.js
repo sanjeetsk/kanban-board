@@ -123,6 +123,8 @@ const Section = memo(({ section }) => {
         mt={1}
         sx={{
           height: "95%",
+          overflowY: "auto",
+          scrollbarWidth: "thin",
           bgcolor: "#F5F5F5",
           padding: 1,
           borderRadius: 2,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { addSection, fetchSections } from "../store/kanbanSlice";
-import { logoutUser, fetchUserCount } from "../store/authSlice";
+import { logoutUser, fetchUserCount, fetchCurrentUser } from "../store/authSlice";
 import {
   Box,
   Button,
@@ -38,9 +38,8 @@ const Board = () => {
   const auth = useSelector((state) => state.auth) || {};
   const user = auth?.user;
   const token = auth?.token;
+  const userPhoto = auth?.user?.userPhoto;
   const userCount = useSelector((state) => state.auth.userCount);
-
-  console.log("count",userCount);
 
   const dispatch = useDispatch();
 
@@ -58,7 +57,11 @@ const Board = () => {
   }, [dispatch]);
 
   // Ensure re-render when token changes
-  useEffect(() => { }, [token]);
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [token, user, dispatch]);
 
   useEffect(() => {
     dispatch(fetchUserCount()); // Fetch user count on mount
@@ -107,7 +110,7 @@ const Board = () => {
       <Box display="flex" alignItems="center" gap={1}>
         <IconButton onClick={handleUserMenuOpen}>
           <Avatar
-            src={user?.userPhoto}
+            src={userPhoto}
             alt={user?.name}
             sx={{
               width: isMobile ? 32 : 40,

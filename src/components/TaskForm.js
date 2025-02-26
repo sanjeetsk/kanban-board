@@ -18,14 +18,13 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
     name: "",
     description: "",
     dueDate: "",
-    assignee: user ? user.id : null, // Auto-set assignee if user is logged in
+    assignee: user ? user.name : "", // Default to logged-in user's name
   });
 
-  // Update assignee when the user state changes
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
-      assignee: user ? user.id : null,
+      assignee: user ? user.name : "",
     }));
   }, [user]);
 
@@ -35,9 +34,8 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
   };
 
   const handleSubmit = () => {
-    console.log("Form Data", formData);
     onSubmit(formData);
-    setFormData({ name: "", description: "", dueDate: "", assignee: user ? user.id : null});
+    setFormData({ name: "", description: "", dueDate: "", assignee: user ? user.name : ""});
     onClose();
   };
 
@@ -77,9 +75,8 @@ const TaskForm = ({ open, onClose, onSubmit }) => {
           label="Assignee"
           fullWidth
           margin="dense"
-          value={user ? `User ID: ${formData.assignee}` : "Guest"}
+          value={formData.assignee}
           onChange={handleChange}
-          disabled
         />
       </DialogContent>
       <DialogActions>
