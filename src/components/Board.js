@@ -28,6 +28,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import AppleIcon from '@mui/icons-material/Apple';
 import MenuIcon from '@mui/icons-material/Menu';
 import AuthForm from "./AuthForm";
+import LoadingScreen from "./LoadingScreen";
 
 const Board = () => {
   const theme = useTheme();
@@ -135,7 +136,7 @@ const Board = () => {
     );
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <LoadingScreen />;
 
   return (
     <div height="100vh">
